@@ -32,8 +32,18 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="AgriMine API", version="1.0.0", lifespan=lifespan,
               description="Crop recommendation, soil health and Plan B for AgriMine. All logic lives in core/; this layer only validates and shapes.")
 errors.install(app)
-if os.environ.get("AGRIMINE_DEV"):      # development only: the Next dev server (port 3000) calls this API (port 8000)
-    app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"], allow_methods=["*"], allow_headers=["*"])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://agrimine.vercel.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ERROR_RESPONSES = {404: {"model": ErrorBody, "description": "Not found"}, 422: {"model": ErrorBody, "description": "Invalid input"}}
 for router in (meta.router, checks.router, advice.router, insights.router, teachers.router):
     app.include_router(router, prefix="/api", responses=ERROR_RESPONSES)   # the contract shows the ONE error shape
