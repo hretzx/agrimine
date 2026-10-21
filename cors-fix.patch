@@ -1,0 +1,406 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index db53d4c..1a071c8 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,8 @@
+ # AgriMine changelog
+ 
++## Deployment fix: CORS for the Vercel web app, and a way to see what Render runs
++Reported: the web app on Vercel could not call the API on Render ("No Access-Control-Allow-Origin header" on the preflight). The CORS middleware in the repo is right (a test now sends the preflight for `/api/meta`, `/api/checks?limit=1` and `/api/checks?limit=4`), so the running service was not this code or did not answer at all. Changes: CORS origins are settable with `AGRIMINE_CORS_ORIGINS` and `AGRIMINE_CORS_ORIGIN_REGEX`; an unhandled crash is now a JSON 500 that still carries the CORS headers (before, the browser showed a CORS error instead of the real error); `python -m api` listens on `0.0.0.0:$PORT` when `PORT` is set; the lab is off by default on Render; `/api/health` reports the running commit on Render; `render.yaml`; `tools/check_cors.py` tests a deployed API the way a browser does. Tests: 24 API tests (7 new).
++
+ ## Phase 8: cut-over
+ The technical lab no longer has its own Home, What should I grow?, Crop Doctor or Plan B (they are in the web app only). It opens on its For teachers page, which lists every technical page, and its sidebar has that one link. `make release` builds the site and packs `dist/agrimine-release.zip` (the committed files plus the prebuilt `web/out`: Python only to run, no Node). README and DEMO_SCRIPT rewritten for the web app. Tests: lab smoke tests updated (14), a real-browser lab test for the new front door, `tests/test_release.py`. Clean-machine run from the zip (new folder, new virtualenv, `pip install -r requirements.txt`, `python -m api`, no Node on the PATH): everything came up, the lab started and stopped with the API, Home showed the same numbers as the development build.
+ 
+diff --git a/README.md b/README.md
+index 89890cc..427d725 100644
+--- a/README.md
++++ b/README.md
+@@ -63,6 +63,20 @@ All routes are under `/api`: `GET /meta`, `POST /checks` (validate, predict and
+ pages' data: `POST /teachers/id3|naive-bayes|kmeans`, `GET /teachers/apriori|hierarchical`. Every error has one shape: `{code, message, field, errors}`.
+ On start-up the API trains the models (about 2 s), migrates an older `assessments` table and predicts any saved check that has none.
+ 
++## Deploying: API on Render, web app on Vercel
++The web app and the API are one origin when `python -m api` serves `web/out`. If the web app is hosted somewhere else (Vercel), the browser calls the API
++from another origin and sends an OPTIONS "preflight" first; it only goes on if the answer has `Access-Control-Allow-Origin`.
++* **Render (the API).** `render.yaml` is a blueprint; on an existing service set the same things by hand. Build command `pip install -r requirements.txt`,
++  start command `python -m api` (it listens on `0.0.0.0` and `$PORT` when `PORT` is set, which Render does), health check `/api/health`.
++  The lab (Streamlit) is off on Render by default. Saved checks live in a SQLite file on the service's disk, which a free service loses when it restarts.
++* **CORS.** The allowed origins are `http://localhost:3000`, `http://127.0.0.1:3000` and `https://agrimine.vercel.app`. Change them without touching the code:
++  `AGRIMINE_CORS_ORIGINS=https://my.site,https://other.site` (comma separated, no path), and `AGRIMINE_CORS_ORIGIN_REGEX=https://agrimine-.*\.vercel\.app`
++  to allow Vercel's preview addresses too. Every answer carries the headers, errors included; an unexpected crash is a JSON 500 (`server_error`), not a bare failure.
++* **Vercel (the web app).** Set `NEXT_PUBLIC_API_URL=https://agrimine.onrender.com` (no trailing slash). It is baked in at BUILD time: after changing it, redeploy.
++* **Is it really running my code?** `GET /api/health` shows `"commit": "<first 7 letters>"` on Render. To test the whole chain the way a browser does, from your machine:
++  `python tools/check_cors.py https://agrimine.onrender.com` (it waits for a sleeping free service, then sends the preflight and a GET with your web app's Origin and says what is wrong).
++  A free Render service sleeps after 15 minutes and needs up to a minute to wake; while it wakes, Render's proxy answers 502/503 WITHOUT CORS headers, and the browser reports that as a CORS error.
++
+ ## Developing (needs Node as well)
+     make install       # Python + Node dependencies
+     make build         # next build -> web/out
+diff --git a/api/__main__.py b/api/__main__.py
+index 63442f6..214f4d4 100644
+--- a/api/__main__.py
++++ b/api/__main__.py
+@@ -1,10 +1,27 @@
+-"""python -m api  [--port 8000] [--host 127.0.0.1]"""
++"""python -m api  [--port 8000] [--host 127.0.0.1]
++
++On your own machine it listens on 127.0.0.1:8000. A host that hands out a port in the PORT variable (Render, Railway, Heroku ...)
++needs the server to listen on 0.0.0.0 and on that port, so when PORT is set those become the defaults.
++"""
+ import argparse
++import os
++
++
++def defaults(environ=os.environ) -> tuple[str, int]:
++    port = environ.get("PORT")
++    return ("0.0.0.0", int(port)) if port else ("127.0.0.1", 8000)
++
++
++def main() -> None:
++    import uvicorn
++
++    host, port = defaults()
++    parser = argparse.ArgumentParser(description="Run the AgriMine API (and the built web app when web/out exists).")
++    parser.add_argument("--host", default=host)
++    parser.add_argument("--port", type=int, default=port)
++    args = parser.parse_args()
++    uvicorn.run("api.main:app", host=args.host, port=args.port)
+ 
+-import uvicorn
+ 
+-parser = argparse.ArgumentParser(description="Run the AgriMine API (and the built web app when web/out exists).")
+-parser.add_argument("--host", default="127.0.0.1")
+-parser.add_argument("--port", type=int, default=8000)
+-args = parser.parse_args()
+-uvicorn.run("api.main:app", host=args.host, port=args.port)
++if __name__ == "__main__":
++    main()
+diff --git a/api/errors.py b/api/errors.py
+index b0da97d..50629ec 100644
+--- a/api/errors.py
++++ b/api/errors.py
+@@ -1,4 +1,6 @@
+ """api/errors.py: every error leaves the API in the same shape: {code, message, field?, errors?}."""
++import logging
++
+ from fastapi import FastAPI, HTTPException, Request
+ from fastapi.exceptions import RequestValidationError
+ from fastapi.responses import JSONResponse
+@@ -40,3 +42,16 @@ def install(app: FastAPI) -> None:
+     async def _http(_: Request, exc: HTTPException):
+         detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+         return JSONResponse(status_code=exc.status_code, content=_body("http_error", detail))
++
++    @app.middleware("http")
++    async def _unhandled(request: Request, call_next):
++        """
++        Any other crash becomes a normal 500 in the one error shape. Without this the exception escaped past the CORS layer, so the
++        browser saw an answer with no Access-Control-Allow-Origin and reported a CORS error instead of the real problem.
++        The details go to the server log, never to the client.
++        """
++        try:
++            return await call_next(request)
++        except Exception:
++            logging.getLogger("uvicorn.error").exception("unhandled error in %s %s", request.method, request.url.path)
++            return JSONResponse(status_code=500, content=_body("server_error", "Something went wrong on the server."))
+diff --git a/api/lab.py b/api/lab.py
+index 8e639c0..711d34f 100644
+--- a/api/lab.py
++++ b/api/lab.py
+@@ -4,7 +4,8 @@ api/lab.py
+ Starts the Streamlit technical lab (teachers-lab/) together with the API, so ONE command (python -m api) gives the whole product:
+ the web app on port 8000 and the lab on port 8501. The web app's "Open in the lab" links go to it.
+ 
+-  * AGRIMINE_LAB=0          do not start the lab (the tests that do not need it set this)
++  * AGRIMINE_LAB=0          do not start the lab (the tests that do not need it set this); off by default on Render (RENDER is set there:
++                            a web service exposes one port and the lab costs memory), AGRIMINE_LAB=1 turns it on again
+   * AGRIMINE_LAB_PORT=8501  the lab's port
+   * AGRIMINE_LAB_URL=...    the address the browser should use, when it differs from http://<same host>:<port>
+   * already running?        if something answers on the port (for example `make lab` in another window) we use it and start nothing
+@@ -29,7 +30,7 @@ LOG = Path(tempfile.gettempdir()) / "agrimine-lab.log"
+ 
+ 
+ def enabled() -> bool:
+-    return os.environ.get("AGRIMINE_LAB", "1") != "0"
++    return os.environ.get("AGRIMINE_LAB", "0" if os.environ.get("RENDER") else "1") != "0"
+ 
+ 
+ def port() -> int:
+diff --git a/api/main.py b/api/main.py
+index 00a904d..db9ae40 100644
+--- a/api/main.py
++++ b/api/main.py
+@@ -19,6 +19,19 @@ from api.routers import advice, checks, insights, meta, teachers
+ ROOT = Path(__file__).resolve().parent.parent
+ WEB_OUT = ROOT / "web" / "out"
+ 
++DEFAULT_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000", "https://agrimine.vercel.app"]
++
++
++def cors_settings(environ=os.environ) -> dict:
++    """
++    Which web origins may call the API from a browser. Set AGRIMINE_CORS_ORIGINS (comma separated, no path) to change the list
++    without touching the code, and AGRIMINE_CORS_ORIGIN_REGEX to also allow a pattern such as Vercel's preview addresses
++    (for example https://agrimine-.*\\.vercel\\.app). An empty AGRIMINE_CORS_ORIGINS allows no cross-origin access at all.
++    """
++    raw = environ.get("AGRIMINE_CORS_ORIGINS")
++    origins = DEFAULT_ORIGINS if raw is None else [o.strip().rstrip("/") for o in raw.split(",") if o.strip()]
++    return {"allow_origins": origins, "allow_origin_regex": environ.get("AGRIMINE_CORS_ORIGIN_REGEX") or None}
++
+ 
+ @asynccontextmanager
+ async def lifespan(app: FastAPI):
+@@ -32,18 +45,10 @@ async def lifespan(app: FastAPI):
+ app = FastAPI(title="AgriMine API", version="1.0.0", lifespan=lifespan,
+               description="Crop recommendation, soil health and Plan B for AgriMine. All logic lives in core/; this layer only validates and shapes.")
+ errors.install(app)
+-
+-app.add_middleware(
+-    CORSMiddleware,
+-    allow_origins=[
+-        "http://localhost:3000",
+-        "http://127.0.0.1:3000",
+-        "https://agrimine.vercel.app",
+-    ],
+-    allow_credentials=True,
+-    allow_methods=["*"],
+-    allow_headers=["*"],
+-)
++# CORS: the web app and the API are one origin when this process serves web/out, but they are two origins when the web app is hosted
++# elsewhere (Vercel) or run by the Next dev server (port 3000). The browser then sends an OPTIONS "preflight" first and only calls the API
++# if the answer carries Access-Control-Allow-Origin. Added AFTER errors.install(), so it is the outermost layer: every answer, errors included, gets the headers.
++app.add_middleware(CORSMiddleware, **cors_settings(), allow_methods=["*"], allow_headers=["*"], allow_credentials=False)   # no cookies are used, so no credentials
+ ERROR_RESPONSES = {404: {"model": ErrorBody, "description": "Not found"}, 422: {"model": ErrorBody, "description": "Invalid input"}}
+ for router in (meta.router, checks.router, advice.router, insights.router, teachers.router):
+     app.include_router(router, prefix="/api", responses=ERROR_RESPONSES)   # the contract shows the ONE error shape
+@@ -58,7 +63,8 @@ def lab_status(request: Request):
+ 
+ @app.get("/api/health", tags=["meta"], summary="Liveness check")
+ def health():
+-    return {"status": "ok", **getattr(app.state, "warm", {})}
++    commit = os.environ.get("RENDER_GIT_COMMIT")      # Render sets this on every deploy: it says which commit is really running
++    return {"status": "ok", **({"commit": commit[:7]} if commit else {}), **getattr(app.state, "warm", {})}
+ 
+ 
+ if WEB_OUT.exists():          # the product: the built web app, served by this same process
+diff --git a/render.yaml b/render.yaml
+new file mode 100644
+index 0000000..c65cfcc
+--- /dev/null
++++ b/render.yaml
+@@ -0,0 +1,16 @@
++# Render blueprint for the API (the web app is on Vercel). New Blueprint -> pick this repository.
++# On an existing service set the same three things in the dashboard: Build command, Start command, Environment.
++services:
++  - type: web
++    name: agrimine
++    runtime: python
++    plan: free
++    buildCommand: pip install -r requirements.txt
++    startCommand: python -m api              # listens on 0.0.0.0 and $PORT when PORT is set (Render sets it)
++    healthCheckPath: /api/health             # a deploy that cannot answer this is NOT promoted: the old version keeps running
++    autoDeploy: true
++    envVars:
++      - key: AGRIMINE_CORS_ORIGINS           # the web app's address(es), comma separated
++        value: https://agrimine.vercel.app
++      - key: AGRIMINE_LAB                    # the Streamlit lab needs a second port and memory: off on Render (it is also the default there)
++        value: "0"
+diff --git a/tests/test_api.py b/tests/test_api.py
+index cb97fed..19d0f3b 100644
+--- a/tests/test_api.py
++++ b/tests/test_api.py
+@@ -329,6 +329,96 @@ def test_teachers_hierarchical_tree_is_consistent_for_every_linkage_and_k():
+             assert c.get(f"/api/teachers/hierarchical?{bad}").status_code == 422
+ 
+ 
++# ------------------------------------------------------------------ CORS: the deployed web app (Vercel) calls this API (Render) from another origin
++VERCEL = "https://agrimine.vercel.app"
++
++
++def test_cors_preflight_for_the_deployed_web_app_is_answered_for_every_route_it_calls():
++    """The browser's OPTIONS preflight must come back 200 with Access-Control-Allow-Origin (the failure the deployed site showed)."""
++    with _client() as c:
++        for path in ("/api/meta", "/api/checks?limit=1", "/api/checks?limit=4"):
++            r = c.options(path, headers={"Origin": VERCEL, "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "content-type"})
++            assert r.status_code == 200, (path, r.status_code, r.text)
++            assert r.headers["access-control-allow-origin"] == VERCEL, path
++            assert "GET" in r.headers["access-control-allow-methods"] and "content-type" in r.headers["access-control-allow-headers"].lower()
++        post = c.options("/api/checks", headers={"Origin": VERCEL, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type"})
++        assert post.status_code == 200 and "POST" in post.headers["access-control-allow-methods"]      # saving a check is a POST with a JSON body
++        local = c.options("/api/meta", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"})
++        assert local.headers["access-control-allow-origin"] == "http://localhost:3000"                  # development still works
++
++
++def test_cors_answers_actual_requests_and_never_lets_in_other_origins():
++    with _client() as c:
++        ok = c.get("/api/meta", headers={"Origin": VERCEL})
++        assert ok.status_code == 200 and ok.headers["access-control-allow-origin"] == VERCEL
++        for bad in (c.get("/api/checks/99999", headers={"Origin": VERCEL}), c.post("/api/checks", json={"N": 1}, headers={"Origin": VERCEL})):
++            assert bad.status_code in (404, 422) and bad.headers["access-control-allow-origin"] == VERCEL    # error answers carry it too
++        evil = c.options("/api/meta", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"})
++        assert evil.status_code == 400 and "access-control-allow-origin" not in evil.headers
++        assert "access-control-allow-origin" not in c.get("/api/meta", headers={"Origin": "https://evil.example"}).headers
++        assert "access-control-allow-origin" not in c.get("/api/meta").headers                        # a plain request without Origin gets no CORS headers
++
++
++def test_health_says_which_commit_is_running_when_the_host_tells_us():
++    with _client() as c:
++        assert "commit" not in c.get("/api/health").json()
++        os.environ["RENDER_GIT_COMMIT"] = "15cb537cf0df1931c20e98aab8af898e44b939f9"
++        try:
++            assert c.get("/api/health").json()["commit"] == "15cb537"
++        finally:
++            del os.environ["RENDER_GIT_COMMIT"]
++
++
++def test_a_crashing_route_still_answers_in_the_error_shape_with_cors_headers():
++    """An unhandled exception used to leave the CORS layer without a response: browsers then reported a CORS error instead of the real 500."""
++    with _client() as c:
++        from api.main import app
++        if not any(getattr(r, "path", "") == "/api/_crash" for r in app.routes):
++            from fastapi.routing import APIRoute
++
++            def crash():
++                raise RuntimeError("simulated crash")
++            app.router.routes.insert(0, APIRoute("/api/_crash", crash, methods=["GET"], include_in_schema=False))       # in front of the static-site mount, which would swallow it
++        quiet = TestClient(app, raise_server_exceptions=False)
++        r = quiet.get("/api/_crash", headers={"Origin": VERCEL})
++        assert r.status_code == 500
++        assert r.headers["access-control-allow-origin"] == VERCEL
++        body = r.json()
++        assert body["code"] == "server_error" and "simulated crash" not in json.dumps(body)       # the shape, and no internals leaked
++
++
++def test_cors_origins_are_settable_without_a_code_change():
++    from api.main import cors_settings
++    default = cors_settings({})
++    assert VERCEL in default["allow_origins"] and "http://localhost:3000" in default["allow_origins"] and default["allow_origin_regex"] is None
++    custom = cors_settings({"AGRIMINE_CORS_ORIGINS": " https://my.site/ ,https://other.site", "AGRIMINE_CORS_ORIGIN_REGEX": r"https://agrimine-.*\.vercel\.app"})
++    assert custom["allow_origins"] == ["https://my.site", "https://other.site"]                     # trailing slashes and spaces do not break matching
++    assert custom["allow_origin_regex"] == r"https://agrimine-.*\.vercel\.app"
++    assert cors_settings({"AGRIMINE_CORS_ORIGINS": ""})["allow_origins"] == []                      # explicitly empty means no cross-origin access
++
++
++def test_the_server_binds_where_a_host_like_render_expects():
++    from api.__main__ import defaults
++    assert defaults({}) == ("127.0.0.1", 8000)                      # on your own machine: local only, port 8000
++    assert defaults({"PORT": "10000"}) == ("0.0.0.0", 10000)        # a host that hands out a port must reach us from outside
++
++
++def test_the_lab_is_off_by_default_on_render_and_on_elsewhere():
++    from api import lab
++    saved = {k: os.environ.pop(k, None) for k in ("AGRIMINE_LAB", "RENDER")}
++    try:
++        assert lab.enabled() is True
++        os.environ["RENDER"] = "true"
++        assert lab.enabled() is False                               # a Render web service cannot expose a second port, and the lab costs memory
++        os.environ["AGRIMINE_LAB"] = "1"
++        assert lab.enabled() is True                                # unless asked for
++    finally:
++        for k, v in saved.items():
++            os.environ.pop(k, None)
++            if v is not None:
++                os.environ[k] = v
++
++
+ def test_openapi_contract_has_not_drifted():
+     """api/openapi.json is what the web app's TypeScript types are generated from. Regenerate: python -m api.export"""
+     from api.main import app
+diff --git a/tools/check_cors.py b/tools/check_cors.py
+new file mode 100644
+index 0000000..b3fdb47
+--- /dev/null
++++ b/tools/check_cors.py
+@@ -0,0 +1,92 @@
++"""
++tools/check_cors.py
++-------------------
++Checks a DEPLOYED AgriMine API the way a browser does, and says what is wrong. Standard library only: run it from your own machine.
++
++    python tools/check_cors.py https://agrimine.onrender.com
++    python tools/check_cors.py https://agrimine.onrender.com --origin https://agrimine.vercel.app --wait 180
++
++1. waits for the service to wake (a free Render service sleeps after 15 minutes and takes up to a minute to answer),
++2. asks which commit is running (/api/health shows it on Render),
++3. sends the OPTIONS "preflight" the browser sends, then a real GET, both with your web app's Origin header.
++"""
++import argparse
++import json
++import sys
++import time
++import urllib.error
++import urllib.request
++
++PATHS = ["/api/meta", "/api/checks?limit=1"]
++
++
++def call(method: str, url: str, headers: dict | None = None, timeout: float = 30):
++    req = urllib.request.Request(url, method=method, headers=headers or {})
++    try:
++        with urllib.request.urlopen(req, timeout=timeout) as r:
++            return r.status, dict(r.headers.items()), r.read().decode("utf-8", "replace")
++    except urllib.error.HTTPError as e:
++        return e.code, dict(e.headers.items()), e.read().decode("utf-8", "replace")
++    except Exception as e:                                  # no answer at all (DNS, refused, timeout)
++        return None, {}, f"{type(e).__name__}: {e}"
++
++
++def lower(h: dict) -> dict:
++    return {k.lower(): v for k, v in h.items()}
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser()
++    ap.add_argument("base", help="the API address, e.g. https://agrimine.onrender.com")
++    ap.add_argument("--origin", default="https://agrimine.vercel.app", help="the address of your web app")
++    ap.add_argument("--wait", type=int, default=120, help="seconds to wait for a sleeping service")
++    a = ap.parse_args()
++    base, origin, problems = a.base.rstrip("/"), a.origin.rstrip("/"), []
++
++    print(f"1. waking {base} (up to {a.wait}s) ...")
++    started, status, headers, body = time.time(), None, {}, ""
++    while time.time() - started < a.wait:
++        status, headers, body = call("GET", base + "/api/health")
++        if status == 200:
++            break
++        print(f"   {status or 'no answer'} after {time.time() - started:.0f}s: {body[:100].strip()!r}; retrying")
++        time.sleep(5)
++    h = lower(headers)
++    if status != 200:
++        print(f"   FAIL: /api/health never answered 200 (last: {status}). A 502/503/504 here comes from the host's proxy, not from your app:")
++        print("   the service is asleep, crashed, out of memory, or not listening on the port the host gave it. Read the service logs.")
++        return 1
++    print(f"   up after {time.time() - started:.0f}s; routed by: {h.get('x-render-routing') or h.get('server') or '?'}")
++    try:
++        info = json.loads(body)
++    except ValueError:
++        info = {}
++    print(f"2. running commit: {info.get('commit', 'not reported (this build does not report it, or the host is not Render)')}")
++
++    print(f"3. browser checks, as {origin}")
++    for path in PATHS:
++        status, headers, body = call("OPTIONS", base + path, {"Origin": origin, "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "content-type"})
++        allow = lower(headers).get("access-control-allow-origin")
++        ok = status == 200 and allow in (origin, "*")
++        print(f"   preflight OPTIONS {path}: {status} allow-origin={allow}  {'ok' if ok else 'FAIL'}")
++        if not ok:
++            problems.append(f"preflight {path} -> {status}, allow-origin {allow}")
++        status, headers, body = call("GET", base + path, {"Origin": origin})
++        allow = lower(headers).get("access-control-allow-origin")
++        ok = status == 200 and allow in (origin, "*")
++        print(f"   GET {path}: {status} allow-origin={allow}  {'ok' if ok else 'FAIL'}")
++        if not ok:
++            problems.append(f"GET {path} -> {status}, allow-origin {allow}")
++    if not problems:
++        print("\nPASS: the server allows this origin. If the browser still blocks it, hard-reload the page (Ctrl+Shift+R) and check the NEXT_PUBLIC_API_URL "
++              "of the Vercel BUILD (it is baked in at build time: change it, then redeploy).")
++        return 0
++    print("\nFAIL:", "; ".join(problems))
++    if any(" 405" in p or " 404" in p for p in problems):
++        print("A 405 or 404 on the preflight means the running app has no CORS middleware: it is an OLD deploy. Compare the commit in step 2 with your latest "
++              "commit, and check the service's Events tab: a failed deploy leaves the previous version running.")
++    return 1
++
++
++if __name__ == "__main__":
++    sys.exit(main())

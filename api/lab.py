@@ -4,7 +4,8 @@ api/lab.py
 Starts the Streamlit technical lab (teachers-lab/) together with the API, so ONE command (python -m api) gives the whole product:
 the web app on port 8000 and the lab on port 8501. The web app's "Open in the lab" links go to it.
 
-  * AGRIMINE_LAB=0          do not start the lab (the tests that do not need it set this)
+  * AGRIMINE_LAB=0          do not start the lab (the tests that do not need it set this); off by default on Render (RENDER is set there:
+                            a web service exposes one port and the lab costs memory), AGRIMINE_LAB=1 turns it on again
   * AGRIMINE_LAB_PORT=8501  the lab's port
   * AGRIMINE_LAB_URL=...    the address the browser should use, when it differs from http://<same host>:<port>
   * already running?        if something answers on the port (for example `make lab` in another window) we use it and start nothing
@@ -29,7 +30,7 @@ LOG = Path(tempfile.gettempdir()) / "agrimine-lab.log"
 
 
 def enabled() -> bool:
-    return os.environ.get("AGRIMINE_LAB", "1") != "0"
+    return os.environ.get("AGRIMINE_LAB", "0" if os.environ.get("RENDER") else "1") != "0"
 
 
 def port() -> int:

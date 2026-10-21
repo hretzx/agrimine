@@ -1,4 +1,6 @@
 """api/errors.py: every error leaves the API in the same shape: {code, message, field?, errors?}."""
+import logging
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -40,3 +42,16 @@ def install(app: FastAPI) -> None:
     async def _http(_: Request, exc: HTTPException):
         detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
         return JSONResponse(status_code=exc.status_code, content=_body("http_error", detail))
+
+    @app.middleware("http")
+    async def _unhandled(request: Request, call_next):
+        """
+        Any other crash becomes a normal 500 in the one error shape. Without this the exception escaped past the CORS layer, so the
+        browser saw an answer with no Access-Control-Allow-Origin and reported a CORS error instead of the real problem.
+        The details go to the server log, never to the client.
+        """
+        try:
+            return await call_next(request)
+        except Exception:
+            logging.getLogger("uvicorn.error").exception("unhandled error in %s %s", request.method, request.url.path)
+            return JSONResponse(status_code=500, content=_body("server_error", "Something went wrong on the server."))

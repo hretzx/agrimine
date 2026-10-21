@@ -63,6 +63,20 @@ All routes are under `/api`: `GET /meta`, `POST /checks` (validate, predict and 
 pages' data: `POST /teachers/id3|naive-bayes|kmeans`, `GET /teachers/apriori|hierarchical`. Every error has one shape: `{code, message, field, errors}`.
 On start-up the API trains the models (about 2 s), migrates an older `assessments` table and predicts any saved check that has none.
 
+## Deploying: API on Render, web app on Vercel
+The web app and the API are one origin when `python -m api` serves `web/out`. If the web app is hosted somewhere else (Vercel), the browser calls the API
+from another origin and sends an OPTIONS "preflight" first; it only goes on if the answer has `Access-Control-Allow-Origin`.
+* **Render (the API).** `render.yaml` is a blueprint; on an existing service set the same things by hand. Build command `pip install -r requirements.txt`,
+  start command `python -m api` (it listens on `0.0.0.0` and `$PORT` when `PORT` is set, which Render does), health check `/api/health`.
+  The lab (Streamlit) is off on Render by default. Saved checks live in a SQLite file on the service's disk, which a free service loses when it restarts.
+* **CORS.** The allowed origins are `http://localhost:3000`, `http://127.0.0.1:3000` and `https://agrimine.vercel.app`. Change them without touching the code:
+  `AGRIMINE_CORS_ORIGINS=https://my.site,https://other.site` (comma separated, no path), and `AGRIMINE_CORS_ORIGIN_REGEX=https://agrimine-.*\.vercel\.app`
+  to allow Vercel's preview addresses too. Every answer carries the headers, errors included; an unexpected crash is a JSON 500 (`server_error`), not a bare failure.
+* **Vercel (the web app).** Set `NEXT_PUBLIC_API_URL=https://agrimine.onrender.com` (no trailing slash). It is baked in at BUILD time: after changing it, redeploy.
+* **Is it really running my code?** `GET /api/health` shows `"commit": "<first 7 letters>"` on Render. To test the whole chain the way a browser does, from your machine:
+  `python tools/check_cors.py https://agrimine.onrender.com` (it waits for a sleeping free service, then sends the preflight and a GET with your web app's Origin and says what is wrong).
+  A free Render service sleeps after 15 minutes and needs up to a minute to wake; while it wakes, Render's proxy answers 502/503 WITHOUT CORS headers, and the browser reports that as a CORS error.
+
 ## Developing (needs Node as well)
     make install       # Python + Node dependencies
     make build         # next build -> web/out

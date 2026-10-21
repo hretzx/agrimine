@@ -1,0 +1,16 @@
+# Render blueprint for the API (the web app is on Vercel). New Blueprint -> pick this repository.
+# On an existing service set the same three things in the dashboard: Build command, Start command, Environment.
+services:
+  - type: web
+    name: agrimine
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m api              # listens on 0.0.0.0 and $PORT when PORT is set (Render sets it)
+    healthCheckPath: /api/health             # a deploy that cannot answer this is NOT promoted: the old version keeps running
+    autoDeploy: true
+    envVars:
+      - key: AGRIMINE_CORS_ORIGINS           # the web app's address(es), comma separated
+        value: https://agrimine.vercel.app
+      - key: AGRIMINE_LAB                    # the Streamlit lab needs a second port and memory: off on Render (it is also the default there)
+        value: "0"

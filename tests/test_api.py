@@ -329,6 +329,96 @@ def test_teachers_hierarchical_tree_is_consistent_for_every_linkage_and_k():
             assert c.get(f"/api/teachers/hierarchical?{bad}").status_code == 422
 
 
+# ------------------------------------------------------------------ CORS: the deployed web app (Vercel) calls this API (Render) from another origin
+VERCEL = "https://agrimine.vercel.app"
+
+
+def test_cors_preflight_for_the_deployed_web_app_is_answered_for_every_route_it_calls():
+    """The browser's OPTIONS preflight must come back 200 with Access-Control-Allow-Origin (the failure the deployed site showed)."""
+    with _client() as c:
+        for path in ("/api/meta", "/api/checks?limit=1", "/api/checks?limit=4"):
+            r = c.options(path, headers={"Origin": VERCEL, "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "content-type"})
+            assert r.status_code == 200, (path, r.status_code, r.text)
+            assert r.headers["access-control-allow-origin"] == VERCEL, path
+            assert "GET" in r.headers["access-control-allow-methods"] and "content-type" in r.headers["access-control-allow-headers"].lower()
+        post = c.options("/api/checks", headers={"Origin": VERCEL, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type"})
+        assert post.status_code == 200 and "POST" in post.headers["access-control-allow-methods"]      # saving a check is a POST with a JSON body
+        local = c.options("/api/meta", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"})
+        assert local.headers["access-control-allow-origin"] == "http://localhost:3000"                  # development still works
+
+
+def test_cors_answers_actual_requests_and_never_lets_in_other_origins():
+    with _client() as c:
+        ok = c.get("/api/meta", headers={"Origin": VERCEL})
+        assert ok.status_code == 200 and ok.headers["access-control-allow-origin"] == VERCEL
+        for bad in (c.get("/api/checks/99999", headers={"Origin": VERCEL}), c.post("/api/checks", json={"N": 1}, headers={"Origin": VERCEL})):
+            assert bad.status_code in (404, 422) and bad.headers["access-control-allow-origin"] == VERCEL    # error answers carry it too
+        evil = c.options("/api/meta", headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"})
+        assert evil.status_code == 400 and "access-control-allow-origin" not in evil.headers
+        assert "access-control-allow-origin" not in c.get("/api/meta", headers={"Origin": "https://evil.example"}).headers
+        assert "access-control-allow-origin" not in c.get("/api/meta").headers                        # a plain request without Origin gets no CORS headers
+
+
+def test_health_says_which_commit_is_running_when_the_host_tells_us():
+    with _client() as c:
+        assert "commit" not in c.get("/api/health").json()
+        os.environ["RENDER_GIT_COMMIT"] = "15cb537cf0df1931c20e98aab8af898e44b939f9"
+        try:
+            assert c.get("/api/health").json()["commit"] == "15cb537"
+        finally:
+            del os.environ["RENDER_GIT_COMMIT"]
+
+
+def test_a_crashing_route_still_answers_in_the_error_shape_with_cors_headers():
+    """An unhandled exception used to leave the CORS layer without a response: browsers then reported a CORS error instead of the real 500."""
+    with _client() as c:
+        from api.main import app
+        if not any(getattr(r, "path", "") == "/api/_crash" for r in app.routes):
+            from fastapi.routing import APIRoute
+
+            def crash():
+                raise RuntimeError("simulated crash")
+            app.router.routes.insert(0, APIRoute("/api/_crash", crash, methods=["GET"], include_in_schema=False))       # in front of the static-site mount, which would swallow it
+        quiet = TestClient(app, raise_server_exceptions=False)
+        r = quiet.get("/api/_crash", headers={"Origin": VERCEL})
+        assert r.status_code == 500
+        assert r.headers["access-control-allow-origin"] == VERCEL
+        body = r.json()
+        assert body["code"] == "server_error" and "simulated crash" not in json.dumps(body)       # the shape, and no internals leaked
+
+
+def test_cors_origins_are_settable_without_a_code_change():
+    from api.main import cors_settings
+    default = cors_settings({})
+    assert VERCEL in default["allow_origins"] and "http://localhost:3000" in default["allow_origins"] and default["allow_origin_regex"] is None
+    custom = cors_settings({"AGRIMINE_CORS_ORIGINS": " https://my.site/ ,https://other.site", "AGRIMINE_CORS_ORIGIN_REGEX": r"https://agrimine-.*\.vercel\.app"})
+    assert custom["allow_origins"] == ["https://my.site", "https://other.site"]                     # trailing slashes and spaces do not break matching
+    assert custom["allow_origin_regex"] == r"https://agrimine-.*\.vercel\.app"
+    assert cors_settings({"AGRIMINE_CORS_ORIGINS": ""})["allow_origins"] == []                      # explicitly empty means no cross-origin access
+
+
+def test_the_server_binds_where_a_host_like_render_expects():
+    from api.__main__ import defaults
+    assert defaults({}) == ("127.0.0.1", 8000)                      # on your own machine: local only, port 8000
+    assert defaults({"PORT": "10000"}) == ("0.0.0.0", 10000)        # a host that hands out a port must reach us from outside
+
+
+def test_the_lab_is_off_by_default_on_render_and_on_elsewhere():
+    from api import lab
+    saved = {k: os.environ.pop(k, None) for k in ("AGRIMINE_LAB", "RENDER")}
+    try:
+        assert lab.enabled() is True
+        os.environ["RENDER"] = "true"
+        assert lab.enabled() is False                               # a Render web service cannot expose a second port, and the lab costs memory
+        os.environ["AGRIMINE_LAB"] = "1"
+        assert lab.enabled() is True                                # unless asked for
+    finally:
+        for k, v in saved.items():
+            os.environ.pop(k, None)
+            if v is not None:
+                os.environ[k] = v
+
+
 def test_openapi_contract_has_not_drifted():
     """api/openapi.json is what the web app's TypeScript types are generated from. Regenerate: python -m api.export"""
     from api.main import app

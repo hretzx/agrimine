@@ -1,5 +1,8 @@
 # AgriMine changelog
 
+## Deployment fix: CORS for the Vercel web app, and a way to see what Render runs
+Reported: the web app on Vercel could not call the API on Render ("No Access-Control-Allow-Origin header" on the preflight). The CORS middleware in the repo is right (a test now sends the preflight for `/api/meta`, `/api/checks?limit=1` and `/api/checks?limit=4`), so the running service was not this code or did not answer at all. Changes: CORS origins are settable with `AGRIMINE_CORS_ORIGINS` and `AGRIMINE_CORS_ORIGIN_REGEX`; an unhandled crash is now a JSON 500 that still carries the CORS headers (before, the browser showed a CORS error instead of the real error); `python -m api` listens on `0.0.0.0:$PORT` when `PORT` is set; the lab is off by default on Render; `/api/health` reports the running commit on Render; `render.yaml`; `tools/check_cors.py` tests a deployed API the way a browser does. Tests: 24 API tests (7 new).
+
 ## Phase 8: cut-over
 The technical lab no longer has its own Home, What should I grow?, Crop Doctor or Plan B (they are in the web app only). It opens on its For teachers page, which lists every technical page, and its sidebar has that one link. `make release` builds the site and packs `dist/agrimine-release.zip` (the committed files plus the prebuilt `web/out`: Python only to run, no Node). README and DEMO_SCRIPT rewritten for the web app. Tests: lab smoke tests updated (14), a real-browser lab test for the new front door, `tests/test_release.py`. Clean-machine run from the zip (new folder, new virtualenv, `pip install -r requirements.txt`, `python -m api`, no Node on the PATH): everything came up, the lab started and stopped with the API, Home showed the same numbers as the development build.
 
