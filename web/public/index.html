@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AgriMine</title>
+  <meta http-equiv="refresh" content="0; url=/en/">
+  <script>
+    /* "/" has no content of its own: send the visitor to the language they used last (default English). */
+    try {
+      var saved = localStorage.getItem("lang");
+      location.replace("/" + (saved === "mr" ? "mr" : "en") + "/");
+    } catch (e) { location.replace("/en/"); }
+  </script>
+</head>
+<body></body>
+</html>

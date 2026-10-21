@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv
+# created automatically when the app runs
+data/agrimine.db
+data/synthetic_crop_recommendation.csv
+data/lake/
+dist/

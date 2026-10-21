@@ -1,0 +1,69 @@
+# Global Streamlit theme for AgriMine: "Sage Field" (light sage / ivory / white, dark forest-green text,
+# restrained pastel accents, one colour per algorithm). Every colour here matches a token in
+# utils/style.py; anything this file cannot do (cards, summary tiles, status bars, sidebar) is done there.
+
+[theme]
+base = "light"
+primaryColor = "#058A5A"               # green: primary buttons, slider track, focus
+backgroundColor = "#F5F6F4"            # ivory-sage page background
+secondaryBackgroundColor = "#F3F7F2"   # widget fills
+textColor = "#061326"                  # dark forest green
+borderColor = "#DCE7D3"                # hairline borders
+showWidgetBorder = true
+baseRadius = "10px"
+buttonRadius = "10px"
+
+# Fonts (Google Fonts, with the system fallback Streamlit adds automatically)
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap"
+codeFont = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+codeFontSize = "0.84rem"
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+headingFontSizes = ["2.1rem", "1.45rem", "1.2rem", "1.05rem", "1rem", "0.9rem"]
+metricValueFontWeight = 600
+
+# Code blocks (SQL, ETL log)
+codeBackgroundColor = "#F3F7F2"
+codeTextColor = "#061326"
+
+# Alerts and status colours: green = good, yellow = caution, coral = issue
+greenColor = "#2E9E6A"
+greenBackgroundColor = "#E3F1E6"
+greenTextColor = "#1F6B42"
+blueColor = "#3D86C6"
+blueBackgroundColor = "#E6F0FA"
+blueTextColor = "#1F5F94"
+yellowColor = "#E3A92B"
+yellowBackgroundColor = "#FBF1D3"
+yellowTextColor = "#7A5200"
+redColor = "#E0644F"
+redBackgroundColor = "#FBE6E1"
+redTextColor = "#A93526"
+orangeColor = "#E8793A"
+orangeTextColor = "#A24E12"
+linkColor = "#0A6A44"
+
+# Data frames
+dataframeBorderColor = "#E6ECE5"
+dataframeHeaderBackgroundColor = "#F3F7F2"
+dataframeHeaderTextColor = "#556D84"
+
+# Native Streamlit charts (Plotly charts use the same values via utils/style.py)
+chartCategoricalColors = ["#3D86C6", "#E0649A", "#E3A92B", "#2E9E6A", "#8467D0",
+                          "#E8793A", "#1F9C8F", "#D9594C", "#6A78D6", "#7DB02E"]
+chartSequentialColors = ["#F1F6EC", "#DDEFD9", "#C4E5C7", "#A8D9B2", "#88CB9A",
+                         "#66BA81", "#46A56B", "#2E8B57", "#1F6F45", "#14532D"]
+
+[theme.sidebar]
+backgroundColor = "#EBF4E9"
+secondaryBackgroundColor = "#DDEBD9"
+borderColor = "#DCE8D9"
+
+[client]
+toolbarMode = "minimal"                # hides developer-only toolbar items
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

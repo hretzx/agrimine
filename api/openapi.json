@@ -1,0 +1,2940 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AgriMine API",
+    "description": "Crop recommendation, soil health and Plan B for AgriMine. All logic lives in core/; this layer only validates and shapes.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/meta": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Counts, crops, the feature registry and languages",
+        "operationId": "meta_api_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/checks": {
+      "post": {
+        "tags": [
+          "checks"
+        ],
+        "summary": "Create a soil check: validate, predict and save in one transaction",
+        "operationId": "create_api_checks_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Readings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "checks"
+        ],
+        "summary": "Recent checks, newest first",
+        "operationId": "recent_api_checks_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CheckOut"
+                  },
+                  "title": "Response Recent Api Checks Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/checks/{check_id}": {
+      "get": {
+        "tags": [
+          "checks"
+        ],
+        "summary": "One check",
+        "operationId": "one_api_checks__check_id__get",
+        "parameters": [
+          {
+            "name": "check_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Check Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/recommend": {
+      "post": {
+        "tags": [
+          "advice"
+        ],
+        "summary": "Stateless recommendation for a set of readings (nothing is saved)",
+        "operationId": "recommend_api_recommend_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Readings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Recommendation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/doctor": {
+      "post": {
+        "tags": [
+          "advice"
+        ],
+        "summary": "Crop Doctor: every reading against the crop's usual range",
+        "operationId": "doctor_api_doctor_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoctorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/plan-b": {
+      "post": {
+        "tags": [
+          "advice"
+        ],
+        "summary": "Plan B: how well the preferred crop fits and which crops fit better",
+        "operationId": "plan_b_api_plan_b_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanBRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanBResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/insights/farms": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "K-Means groups of similar conditions (rainfall x temperature)",
+        "operationId": "farms_api_insights_farms_get",
+        "parameters": [
+          {
+            "name": "k",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 5,
+              "minimum": 3,
+              "default": 4,
+              "title": "K"
+            }
+          },
+          {
+            "name": "check",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Include this check's group",
+              "title": "Check"
+            },
+            "description": "Include this check's group"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarmsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/insights/needs": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "Average temperature, rainfall and humidity of every crop",
+        "operationId": "needs_api_insights_needs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CropNeeds"
+                  },
+                  "type": "array",
+                  "title": "Response Needs Api Insights Needs Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/insights/gain": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "ID3 information gain of every reading at the tree's root, largest first",
+        "operationId": "gain_api_insights_gain_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GainRow"
+                  },
+                  "type": "array",
+                  "title": "Response Gain Api Insights Gain Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/insights/patterns": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "Apriori rules that end in a crop, strongest lift first",
+        "operationId": "patterns_api_insights_patterns_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 5,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatternsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/insights/accuracy": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "summary": "Held-out accuracy of the two classifiers",
+        "operationId": "accuracy_api_insights_accuracy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccuracyResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teachers/id3": {
+      "post": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "ID3 decision tree: the prediction, the path it took, accuracy, alternatives",
+        "operationId": "id3_api_teachers_id3_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Readings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ID3Report"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teachers/naive-bayes": {
+      "post": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "Model Council: Naive Bayes against ID3 on the same readings, with the formula worked out",
+        "operationId": "naive_bayes_api_teachers_naive_bayes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Readings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NBReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teachers/kmeans": {
+      "post": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "Cluster Explorer: K-Means groups on a PCA map, profiles, crops per group, choosing k",
+        "operationId": "kmeans_api_teachers_kmeans_post",
+        "parameters": [
+          {
+            "name": "k",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10,
+              "minimum": 2,
+              "description": "Number of groups",
+              "default": 4,
+              "title": "K"
+            },
+            "description": "Number of groups"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Readings"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KMeansReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teachers/apriori": {
+      "get": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "Pattern Mining: Apriori association rules at the chosen support, confidence and size",
+        "operationId": "apriori_rules_api_teachers_apriori_get",
+        "parameters": [
+          {
+            "name": "min_support",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 0.1,
+              "minimum": 0.005,
+              "default": 0.01,
+              "title": "Min Support"
+            }
+          },
+          {
+            "name": "min_confidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.5,
+              "default": 0.6,
+              "title": "Min Confidence"
+            }
+          },
+          {
+            "name": "max_len",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 5,
+              "minimum": 2,
+              "description": "Largest pattern size, in items",
+              "default": 5,
+              "title": "Max Len"
+            },
+            "description": "Largest pattern size, in items"
+          },
+          {
+            "name": "crop",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only rules that mention this crop",
+              "title": "Crop"
+            },
+            "description": "Only rules that mention this crop"
+          },
+          {
+            "name": "only_crop",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only rules that end in a crop",
+              "default": true,
+              "title": "Only Crop"
+            },
+            "description": "Only rules that end in a crop"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AprioriReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teachers/hierarchical": {
+      "get": {
+        "tags": [
+          "teachers"
+        ],
+        "summary": "Hierarchical clustering of the 22 crops: dendrogram, k clusters, and top-down DIANA",
+        "operationId": "hierarchical_api_teachers_hierarchical_get",
+        "parameters": [
+          {
+            "name": "method",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ward",
+                "average",
+                "complete",
+                "single"
+              ],
+              "type": "string",
+              "description": "How the distance between two groups is measured",
+              "default": "ward",
+              "title": "Method"
+            },
+            "description": "How the distance between two groups is measured"
+          },
+          {
+            "name": "k",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10,
+              "minimum": 2,
+              "description": "Cut the tree into this many clusters",
+              "default": 4,
+              "title": "K"
+            },
+            "description": "Cut the tree into this many clusters"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HierarchicalReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lab": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Is the technical lab (Streamlit) up, and where is it?",
+        "description": "The web app links to the lab only when this says it answers. `url` uses the host the browser used to reach this API.",
+        "operationId": "lab_status_api_lab_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Liveness check",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccuracyResponse": {
+        "properties": {
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/ModelAccuracy"
+            },
+            "type": "array",
+            "title": "Models"
+          },
+          "train_rows": {
+            "type": "integer",
+            "title": "Train Rows"
+          },
+          "test_rows": {
+            "type": "integer",
+            "title": "Test Rows"
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed",
+            "description": "Seed of the stratified train / test split (the same for both models)"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric",
+            "description": "What the accuracy number means (English text, for teachers)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "models",
+          "train_rows",
+          "test_rows",
+          "seed",
+          "metric"
+        ],
+        "title": "AccuracyResponse"
+      },
+      "Alternative": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "match": {
+            "type": "number",
+            "title": "Match"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "good",
+              "moderate",
+              "low"
+            ],
+            "title": "Level"
+          },
+          "needs": {
+            "items": {
+              "$ref": "#/components/schemas/Need"
+            },
+            "type": "array",
+            "title": "Needs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "match",
+          "level",
+          "needs"
+        ],
+        "title": "Alternative"
+      },
+      "AprioriReport": {
+        "properties": {
+          "itemsets": {
+            "type": "integer",
+            "title": "Itemsets",
+            "description": "Frequent itemsets found at this minimum support and size"
+          },
+          "rules_total": {
+            "type": "integer",
+            "title": "Rules Total",
+            "description": "Rules that meet the settings (after the crop filter)"
+          },
+          "seconds": {
+            "type": "number",
+            "title": "Seconds",
+            "description": "Measured mining time of the first run for this support and size"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/Pattern"
+            },
+            "type": "array",
+            "title": "Rules",
+            "description": "The strongest rules by lift, then confidence, then support (at most `limit`)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "itemsets",
+          "rules_total",
+          "seconds",
+          "rules"
+        ],
+        "title": "AprioriReport"
+      },
+      "CheckOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "values": {
+            "$ref": "#/components/schemas/Readings"
+          },
+          "categories": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Categories",
+            "description": "low / medium / high per reading (pH: acidic / neutral / alkaline)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "predicted",
+              "pending"
+            ],
+            "title": "Status",
+            "description": "pending only for rows saved by the old Soil Analysis page"
+          },
+          "predicted_crop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CropRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probability"
+          },
+          "id3_crop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CropRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cluster_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cluster Id"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "values",
+          "categories",
+          "status",
+          "predicted_crop",
+          "probability",
+          "id3_crop",
+          "cluster_id",
+          "model_version"
+        ],
+        "title": "CheckOut"
+      },
+      "CropNeeds": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature"
+          },
+          "rainfall": {
+            "type": "number",
+            "title": "Rainfall"
+          },
+          "humidity": {
+            "type": "number",
+            "title": "Humidity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "temperature",
+          "rainfall",
+          "humidity"
+        ],
+        "title": "CropNeeds"
+      },
+      "CropRef": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "label_mr": {
+            "type": "string",
+            "title": "Label Mr"
+          },
+          "family": {
+            "type": "string",
+            "title": "Family"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "label_mr",
+          "family"
+        ],
+        "title": "CropRef"
+      },
+      "DendroSegment": {
+        "properties": {
+          "x": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "X",
+            "description": "Four x values of one upside-down U (left leaf column, left, right, right)"
+          },
+          "y": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Y",
+            "description": "The matching four heights"
+          },
+          "cluster": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cluster",
+            "description": "Cluster number (0-based) of a merge below the cut; null above the cut"
+          },
+          "height": {
+            "type": "number",
+            "title": "Height",
+            "description": "Height of this merge"
+          }
+        },
+        "type": "object",
+        "required": [
+          "x",
+          "y",
+          "cluster",
+          "height"
+        ],
+        "title": "DendroSegment"
+      },
+      "DianaStep": {
+        "properties": {
+          "step": {
+            "type": "integer",
+            "title": "Step"
+          },
+          "diameter": {
+            "type": "number",
+            "title": "Diameter",
+            "description": "Widest distance inside the group that is split"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size",
+            "description": "Crops in the group that is split"
+          },
+          "splinter": {
+            "items": {
+              "$ref": "#/components/schemas/CropRef"
+            },
+            "type": "array",
+            "title": "Splinter"
+          },
+          "rest": {
+            "items": {
+              "$ref": "#/components/schemas/CropRef"
+            },
+            "type": "array",
+            "title": "Rest"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step",
+          "diameter",
+          "size",
+          "splinter",
+          "rest"
+        ],
+        "title": "DianaStep"
+      },
+      "DoctorReading": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "low": {
+            "type": "number",
+            "title": "Low",
+            "description": "10th percentile of the crop's records"
+          },
+          "high": {
+            "type": "number",
+            "title": "High",
+            "description": "90th percentile of the crop's records"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "good",
+              "moderate",
+              "attention"
+            ],
+            "title": "Status"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "low",
+              "high",
+              ""
+            ],
+            "title": "Direction"
+          },
+          "tip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tip",
+            "description": "General guidance in English; not a fertiliser prescription"
+          },
+          "tip_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tip Key",
+            "description": "Stable key of the tip, e.g. 'P.high': clients translate it themselves"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "value",
+          "low",
+          "high",
+          "status",
+          "direction",
+          "tip",
+          "tip_key"
+        ],
+        "title": "DoctorReading"
+      },
+      "DoctorRequest": {
+        "properties": {
+          "values": {
+            "$ref": "#/components/schemas/Readings"
+          },
+          "crop": {
+            "type": "string",
+            "title": "Crop"
+          }
+        },
+        "type": "object",
+        "required": [
+          "values",
+          "crop"
+        ],
+        "title": "DoctorRequest"
+      },
+      "DoctorResponse": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "overall": {
+            "type": "string",
+            "enum": [
+              "good",
+              "moderate",
+              "attention"
+            ],
+            "title": "Overall"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "needs_attention": {
+            "type": "integer",
+            "title": "Needs Attention"
+          },
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/DoctorReading"
+            },
+            "type": "array",
+            "title": "Readings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "overall",
+          "score",
+          "needs_attention",
+          "readings"
+        ],
+        "title": "DoctorResponse"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "description": "The ONE error shape of the API."
+      },
+      "FamilyInfo": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "label_mr": {
+            "type": "string",
+            "title": "Label Mr"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "label_mr"
+        ],
+        "title": "FamilyInfo"
+      },
+      "FarmCluster": {
+        "properties": {
+          "cluster": {
+            "type": "integer",
+            "title": "Cluster"
+          },
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          },
+          "top_crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "share": {
+            "type": "number",
+            "title": "Share"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cluster",
+          "records",
+          "top_crop",
+          "share"
+        ],
+        "title": "FarmCluster"
+      },
+      "FarmsResponse": {
+        "properties": {
+          "k": {
+            "type": "integer",
+            "title": "K"
+          },
+          "silhouette": {
+            "type": "number",
+            "title": "Silhouette"
+          },
+          "points": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array",
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "type": "array",
+            "title": "Points",
+            "description": "One [rainfall mm, temperature °C, cluster] triple per record, rounded to 0.1; a compact form on purpose (2,200 records)"
+          },
+          "clusters": {
+            "items": {
+              "$ref": "#/components/schemas/FarmCluster"
+            },
+            "type": "array",
+            "title": "Clusters"
+          },
+          "your_cluster": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Your Cluster"
+          }
+        },
+        "type": "object",
+        "required": [
+          "k",
+          "silhouette",
+          "points",
+          "clusters",
+          "your_cluster"
+        ],
+        "title": "FarmsResponse"
+      },
+      "FeatureInfo": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "label_mr": {
+            "type": "string",
+            "title": "Label Mr"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "lo": {
+            "type": "number",
+            "title": "Lo"
+          },
+          "hi": {
+            "type": "number",
+            "title": "Hi"
+          },
+          "default": {
+            "type": "number",
+            "title": "Default",
+            "description": "Median of the dataset: where a reading starts when no check is saved yet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "label_mr",
+          "name",
+          "unit",
+          "lo",
+          "hi",
+          "default"
+        ],
+        "title": "FeatureInfo"
+      },
+      "GainRow": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "gain": {
+            "type": "number",
+            "title": "Gain"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "gain"
+        ],
+        "title": "GainRow"
+      },
+      "HierarchicalReport": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "ward",
+              "average",
+              "complete",
+              "single"
+            ],
+            "title": "Method"
+          },
+          "k": {
+            "type": "integer",
+            "title": "K"
+          },
+          "cophenetic": {
+            "type": "number",
+            "title": "Cophenetic",
+            "description": "How faithfully the tree keeps the original distances (1 = perfectly)"
+          },
+          "last_height": {
+            "type": "number",
+            "title": "Last Height",
+            "description": "Height of the final merge"
+          },
+          "crops": {
+            "items": {
+              "$ref": "#/components/schemas/CropRef"
+            },
+            "type": "array",
+            "title": "Crops",
+            "description": "The 22 crops; `order` indexes into this list"
+          },
+          "order": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Order",
+            "description": "Left-to-right order of the crops along the bottom of the dendrogram"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/DendroSegment"
+            },
+            "type": "array",
+            "title": "Segments"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold",
+            "description": "Height of the cut that gives k clusters"
+          },
+          "clusters": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/CropRef"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Clusters",
+            "description": "The k clusters from the agglomerative tree"
+          },
+          "diana_clusters": {
+            "items": {
+              "items": {
+                "$ref": "#/components/schemas/CropRef"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Diana Clusters",
+            "description": "The k clusters from top-down DIANA"
+          },
+          "same": {
+            "type": "boolean",
+            "title": "Same",
+            "description": "Whether both methods give the same clusters at this k"
+          },
+          "diana_steps": {
+            "items": {
+              "$ref": "#/components/schemas/DianaStep"
+            },
+            "type": "array",
+            "title": "Diana Steps",
+            "description": "The first splits of DIANA"
+          }
+        },
+        "type": "object",
+        "required": [
+          "method",
+          "k",
+          "cophenetic",
+          "last_height",
+          "crops",
+          "order",
+          "segments",
+          "threshold",
+          "clusters",
+          "diana_clusters",
+          "same",
+          "diana_steps"
+        ],
+        "title": "HierarchicalReport"
+      },
+      "ID3Alternative": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "match": {
+            "type": "number",
+            "title": "Match",
+            "description": "Profile match 0-100 (similarity to the crop's average, NOT the ID3 tree)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "match"
+        ],
+        "title": "ID3Alternative"
+      },
+      "ID3Hardest": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "accuracy": {
+            "type": "number",
+            "title": "Accuracy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "accuracy"
+        ],
+        "title": "ID3Hardest"
+      },
+      "ID3Model": {
+        "properties": {
+          "n_bins": {
+            "type": "integer",
+            "title": "N Bins"
+          },
+          "max_depth": {
+            "type": "integer",
+            "title": "Max Depth"
+          },
+          "depth": {
+            "type": "integer",
+            "title": "Depth",
+            "description": "Depth the trained tree actually reached"
+          },
+          "leaves": {
+            "type": "integer",
+            "title": "Leaves"
+          },
+          "edges": {
+            "additionalProperties": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Edges",
+            "description": "Equal-frequency bin edges per feature key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "n_bins",
+          "max_depth",
+          "depth",
+          "leaves",
+          "edges"
+        ],
+        "title": "ID3Model"
+      },
+      "ID3Report": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "purity": {
+            "type": "number",
+            "title": "Purity",
+            "description": "Share of training rows at the final tree node that are this crop"
+          },
+          "cluster": {
+            "type": "integer",
+            "title": "Cluster",
+            "description": "K-Means group (0-based) the readings fall in"
+          },
+          "path": {
+            "items": {
+              "$ref": "#/components/schemas/ID3Step"
+            },
+            "type": "array",
+            "title": "Path"
+          },
+          "accuracy": {
+            "type": "number",
+            "title": "Accuracy",
+            "description": "Held-out accuracy (stratified 80/20 split, same seed as everywhere else)"
+          },
+          "n_train": {
+            "type": "integer",
+            "title": "N Train"
+          },
+          "n_test": {
+            "type": "integer",
+            "title": "N Test"
+          },
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/ID3Alternative"
+            },
+            "type": "array",
+            "title": "Alternatives"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ID3Model"
+          },
+          "hardest": {
+            "items": {
+              "$ref": "#/components/schemas/ID3Hardest"
+            },
+            "type": "array",
+            "title": "Hardest",
+            "description": "Crops the tree finds hardest, by held-out accuracy (lowest first)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "purity",
+          "cluster",
+          "path",
+          "accuracy",
+          "n_train",
+          "n_test",
+          "alternatives",
+          "model",
+          "hardest"
+        ],
+        "title": "ID3Report"
+      },
+      "ID3Step": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature",
+            "description": "Feature key the tree asked about"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value",
+            "description": "The reading's value"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level",
+            "description": "The bin the value fell into (very low ... very high)"
+          },
+          "range": {
+            "type": "string",
+            "title": "Range",
+            "description": "Numeric range of that bin, as English text"
+          },
+          "lo": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lo",
+            "description": "The bin starts here (value >= lo); null = no lower limit"
+          },
+          "hi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hi",
+            "description": "The bin ends here (value < hi); null = no upper limit"
+          },
+          "gain": {
+            "type": "number",
+            "title": "Gain",
+            "description": "Information gain of this split, in bits"
+          },
+          "rows_here": {
+            "type": "integer",
+            "title": "Rows Here",
+            "description": "Training rows that reached this node"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "value",
+          "level",
+          "range",
+          "lo",
+          "hi",
+          "gain",
+          "rows_here"
+        ],
+        "title": "ID3Step"
+      },
+      "KMeansCluster": {
+        "properties": {
+          "cluster": {
+            "type": "integer",
+            "title": "Cluster",
+            "description": "0-based group number"
+          },
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          },
+          "top_crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "share": {
+            "type": "number",
+            "title": "Share",
+            "description": "Share of the group's records that are the top crop"
+          },
+          "averages": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Averages",
+            "description": "The group's centroid in real units, per feature key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cluster",
+          "records",
+          "top_crop",
+          "share",
+          "averages"
+        ],
+        "title": "KMeansCluster"
+      },
+      "KMeansDiagnostic": {
+        "properties": {
+          "k": {
+            "type": "integer",
+            "title": "K"
+          },
+          "inertia": {
+            "type": "number",
+            "title": "Inertia"
+          },
+          "silhouette": {
+            "type": "number",
+            "title": "Silhouette"
+          }
+        },
+        "type": "object",
+        "required": [
+          "k",
+          "inertia",
+          "silhouette"
+        ],
+        "title": "KMeansDiagnostic"
+      },
+      "KMeansReport": {
+        "properties": {
+          "k": {
+            "type": "integer",
+            "title": "K"
+          },
+          "inertia": {
+            "type": "number",
+            "title": "Inertia",
+            "description": "Sum of squared distances to the centroids (lower = tighter groups)"
+          },
+          "silhouette": {
+            "type": "number",
+            "title": "Silhouette",
+            "description": "-1 to 1, higher = better separated groups"
+          },
+          "variance": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Variance",
+            "description": "Share of the information that PC1 and PC2 keep"
+          },
+          "your_cluster": {
+            "type": "integer",
+            "title": "Your Cluster"
+          },
+          "your_point": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Your Point",
+            "description": "The readings on the PCA map (PC1, PC2)"
+          },
+          "points": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array",
+              "maxItems": 3,
+              "minItems": 3
+            },
+            "type": "array",
+            "title": "Points",
+            "description": "Every record: PC1, PC2, group"
+          },
+          "clusters": {
+            "items": {
+              "$ref": "#/components/schemas/KMeansCluster"
+            },
+            "type": "array",
+            "title": "Clusters"
+          },
+          "crops": {
+            "items": {
+              "$ref": "#/components/schemas/CropRef"
+            },
+            "type": "array",
+            "title": "Crops",
+            "description": "Column order of crop_counts"
+          },
+          "crop_counts": {
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Crop Counts",
+            "description": "Records per group (rows) and crop (columns)"
+          },
+          "diagnostics": {
+            "items": {
+              "$ref": "#/components/schemas/KMeansDiagnostic"
+            },
+            "type": "array",
+            "title": "Diagnostics",
+            "description": "Inertia and silhouette for k = 2 to 10"
+          },
+          "best_k": {
+            "type": "integer",
+            "title": "Best K",
+            "description": "The k with the highest silhouette"
+          }
+        },
+        "type": "object",
+        "required": [
+          "k",
+          "inertia",
+          "silhouette",
+          "variance",
+          "your_cluster",
+          "your_point",
+          "points",
+          "clusters",
+          "crops",
+          "crop_counts",
+          "diagnostics",
+          "best_k"
+        ],
+        "title": "KMeansReport"
+      },
+      "LabStatus": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "description": "True when something answers on the lab's port (we started it, or `make lab` did)"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "Where the browser should open the lab"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "description": "Why it is or is not running, for the person starting the app"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available",
+          "url",
+          "note"
+        ],
+        "title": "LabStatus"
+      },
+      "Meta": {
+        "properties": {
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          },
+          "crops": {
+            "items": {
+              "$ref": "#/components/schemas/CropRef"
+            },
+            "type": "array",
+            "title": "Crops"
+          },
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyInfo"
+            },
+            "type": "array",
+            "title": "Families"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/FeatureInfo"
+            },
+            "type": "array",
+            "title": "Features"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Languages"
+          },
+          "saved_checks": {
+            "type": "integer",
+            "title": "Saved Checks"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "records",
+          "crops",
+          "families",
+          "features",
+          "languages",
+          "saved_checks",
+          "model_version"
+        ],
+        "title": "Meta"
+      },
+      "ModelAccuracy": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "accuracy": {
+            "type": "number",
+            "title": "Accuracy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "accuracy"
+        ],
+        "title": "ModelAccuracy"
+      },
+      "NBPerCrop": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "id3": {
+            "type": "number",
+            "title": "Id3"
+          },
+          "nb": {
+            "type": "number",
+            "title": "Nb"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "id3",
+          "nb"
+        ],
+        "title": "NBPerCrop"
+      },
+      "NBReport": {
+        "properties": {
+          "agree": {
+            "type": "boolean",
+            "title": "Agree"
+          },
+          "id3": {
+            "$ref": "#/components/schemas/NBVerdictID3"
+          },
+          "nb": {
+            "$ref": "#/components/schemas/NBVerdictNB"
+          },
+          "top": {
+            "items": {
+              "$ref": "#/components/schemas/NBTop"
+            },
+            "type": "array",
+            "title": "Top",
+            "description": "The six most likely crops by Naive Bayes"
+          },
+          "runner_up": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "why": {
+            "items": {
+              "$ref": "#/components/schemas/NBWhy"
+            },
+            "type": "array",
+            "title": "Why",
+            "description": "Why Naive Bayes preferred its crop over the runner-up, one row per feature plus the prior"
+          },
+          "why_total": {
+            "type": "number",
+            "title": "Why Total",
+            "description": "Sum of 'why' = ln(odds of the winner over the runner-up)"
+          },
+          "worked": {
+            "$ref": "#/components/schemas/NBWorked"
+          },
+          "per_crop": {
+            "items": {
+              "$ref": "#/components/schemas/NBPerCrop"
+            },
+            "type": "array",
+            "title": "Per Crop",
+            "description": "Held-out accuracy of both models for every crop, ID3's weakest first"
+          }
+        },
+        "type": "object",
+        "required": [
+          "agree",
+          "id3",
+          "nb",
+          "top",
+          "runner_up",
+          "why",
+          "why_total",
+          "worked",
+          "per_crop"
+        ],
+        "title": "NBReport"
+      },
+      "NBTop": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "probability": {
+            "type": "number",
+            "title": "Probability"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "probability"
+        ],
+        "title": "NBTop"
+      },
+      "NBVerdictID3": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "purity": {
+            "type": "number",
+            "title": "Purity",
+            "description": "Share of training rows at the ID3 leaf that are the predicted crop"
+          },
+          "accuracy": {
+            "type": "number",
+            "title": "Accuracy",
+            "description": "Held-out accuracy"
+          },
+          "nb_probability": {
+            "type": "number",
+            "title": "Nb Probability",
+            "description": "The probability Naive Bayes gives ID3's crop"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "purity",
+          "accuracy",
+          "nb_probability"
+        ],
+        "title": "NBVerdictID3"
+      },
+      "NBVerdictNB": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "probability": {
+            "type": "number",
+            "title": "Probability",
+            "description": "Posterior probability of the winning crop"
+          },
+          "accuracy": {
+            "type": "number",
+            "title": "Accuracy",
+            "description": "Held-out accuracy (same split as ID3)"
+          },
+          "n_train": {
+            "type": "integer",
+            "title": "N Train"
+          },
+          "n_test": {
+            "type": "integer",
+            "title": "N Test"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "probability",
+          "accuracy",
+          "n_train",
+          "n_test"
+        ],
+        "title": "NBVerdictNB"
+      },
+      "NBWhy": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature",
+            "description": "A feature key, or 'prior' (how common the crop is)"
+          },
+          "difference": {
+            "type": "number",
+            "title": "Difference",
+            "description": "log P(x | winner) - log P(x | runner-up); positive favours the winner"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "difference"
+        ],
+        "title": "NBWhy"
+      },
+      "NBWorked": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/NBWorkedRow"
+            },
+            "type": "array",
+            "title": "Features"
+          },
+          "prior": {
+            "type": "number",
+            "title": "Prior"
+          },
+          "log_prior": {
+            "type": "number",
+            "title": "Log Prior"
+          },
+          "sum_log_likelihood": {
+            "type": "number",
+            "title": "Sum Log Likelihood"
+          },
+          "joint": {
+            "type": "number",
+            "title": "Joint",
+            "description": "log_prior + sum_log_likelihood"
+          },
+          "n_crops": {
+            "type": "integer",
+            "title": "N Crops"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "features",
+          "prior",
+          "log_prior",
+          "sum_log_likelihood",
+          "joint",
+          "n_crops"
+        ],
+        "title": "NBWorked"
+      },
+      "NBWorkedRow": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value"
+          },
+          "mean": {
+            "type": "number",
+            "title": "Mean",
+            "description": "The winning crop's mean for this feature"
+          },
+          "sigma": {
+            "type": "number",
+            "title": "Sigma",
+            "description": "The winning crop's standard deviation"
+          },
+          "distance": {
+            "type": "number",
+            "title": "Distance",
+            "description": "(value - mean) / sigma"
+          },
+          "log_likelihood": {
+            "type": "number",
+            "title": "Log Likelihood"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "value",
+          "mean",
+          "sigma",
+          "distance",
+          "log_likelihood"
+        ],
+        "title": "NBWorkedRow"
+      },
+      "Need": {
+        "properties": {
+          "feature": {
+            "type": "string",
+            "title": "Feature"
+          },
+          "low": {
+            "type": "number",
+            "title": "Low"
+          },
+          "high": {
+            "type": "number",
+            "title": "High"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "good",
+              "moderate",
+              "attention"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "feature",
+          "low",
+          "high",
+          "status"
+        ],
+        "title": "Need"
+      },
+      "Pattern": {
+        "properties": {
+          "antecedent": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Antecedent"
+          },
+          "consequent": {
+            "type": "string",
+            "title": "Consequent"
+          },
+          "support": {
+            "type": "number",
+            "title": "Support"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "lift": {
+            "type": "number",
+            "title": "Lift"
+          }
+        },
+        "type": "object",
+        "required": [
+          "antecedent",
+          "consequent",
+          "support",
+          "confidence",
+          "lift"
+        ],
+        "title": "Pattern"
+      },
+      "PatternsResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "How many rules ending in a crop exist at the default thresholds"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Pattern"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "The strongest rules by lift"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "PatternsResponse"
+      },
+      "PlanBRequest": {
+        "properties": {
+          "values": {
+            "$ref": "#/components/schemas/Readings"
+          },
+          "preferred": {
+            "type": "string",
+            "title": "Preferred"
+          }
+        },
+        "type": "object",
+        "required": [
+          "values",
+          "preferred"
+        ],
+        "title": "PlanBRequest"
+      },
+      "PlanBResponse": {
+        "properties": {
+          "preferred": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "preferred_match": {
+            "type": "number",
+            "title": "Preferred Match"
+          },
+          "best_match": {
+            "type": "number",
+            "title": "Best Match"
+          },
+          "best_crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "good",
+              "moderate",
+              "low"
+            ],
+            "title": "Level"
+          },
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/Alternative"
+            },
+            "type": "array",
+            "title": "Alternatives"
+          }
+        },
+        "type": "object",
+        "required": [
+          "preferred",
+          "preferred_match",
+          "best_match",
+          "best_crop",
+          "level",
+          "alternatives"
+        ],
+        "title": "PlanBResponse"
+      },
+      "RankedCrop": {
+        "properties": {
+          "crop": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "probability": {
+            "type": "number",
+            "title": "Probability",
+            "description": "Gaussian Naive Bayes class probability (uncalibrated, not a yield forecast)"
+          },
+          "match": {
+            "type": "number",
+            "title": "Match",
+            "description": "Profile similarity 0-100: closeness to the crop's average, in units of its own spread"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "good",
+              "moderate",
+              "low"
+            ],
+            "title": "Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "crop",
+          "probability",
+          "match",
+          "level"
+        ],
+        "title": "RankedCrop"
+      },
+      "Readings": {
+        "properties": {
+          "N": {
+            "type": "number",
+            "maximum": 140.0,
+            "minimum": 0.0,
+            "title": "N",
+            "description": "Nitrogen (N) (no unit stated by the dataset)"
+          },
+          "P": {
+            "type": "number",
+            "maximum": 145.0,
+            "minimum": 5.0,
+            "title": "P",
+            "description": "Phosphorus (P) (no unit stated by the dataset)"
+          },
+          "K": {
+            "type": "number",
+            "maximum": 205.0,
+            "minimum": 5.0,
+            "title": "K",
+            "description": "Potassium (K) (no unit stated by the dataset)"
+          },
+          "temperature": {
+            "type": "number",
+            "maximum": 44.0,
+            "minimum": 8.0,
+            "title": "Temperature",
+            "description": "Temperature (°C)"
+          },
+          "humidity": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 14.0,
+            "title": "Humidity",
+            "description": "Humidity (%)"
+          },
+          "ph": {
+            "type": "number",
+            "maximum": 10.0,
+            "minimum": 3.5,
+            "title": "Ph",
+            "description": "pH (no unit stated by the dataset)"
+          },
+          "rainfall": {
+            "type": "number",
+            "maximum": 300.0,
+            "minimum": 20.0,
+            "title": "Rainfall",
+            "description": "Rainfall (mm)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "N",
+          "P",
+          "K",
+          "temperature",
+          "humidity",
+          "ph",
+          "rainfall"
+        ],
+        "title": "Readings",
+        "description": "The seven soil and weather readings. Ranges come from core/features.py.",
+        "example": {
+          "K": 43,
+          "N": 90,
+          "P": 42,
+          "humidity": 82,
+          "ph": 6.5,
+          "rainfall": 202.9,
+          "temperature": 20.9
+        }
+      },
+      "Recommendation": {
+        "properties": {
+          "best": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "probability": {
+            "type": "number",
+            "title": "Probability"
+          },
+          "id3": {
+            "$ref": "#/components/schemas/CropRef"
+          },
+          "id3_purity": {
+            "type": "number",
+            "title": "Id3 Purity",
+            "description": "Share of training rows at the ID3 leaf that are the predicted crop"
+          },
+          "agrees": {
+            "type": "boolean",
+            "title": "Agrees"
+          },
+          "ranking": {
+            "items": {
+              "$ref": "#/components/schemas/RankedCrop"
+            },
+            "type": "array",
+            "title": "Ranking",
+            "description": "Every crop ordered by probability"
+          },
+          "similar": {
+            "items": {
+              "$ref": "#/components/schemas/RankedCrop"
+            },
+            "type": "array",
+            "title": "Similar",
+            "description": "Every crop except the best, ordered by match (used for Plan B)"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons",
+            "description": "Feature keys closest to the best crop's usual conditions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "best",
+          "probability",
+          "id3",
+          "id3_purity",
+          "agrees",
+          "ranking",
+          "similar",
+          "reasons"
+        ],
+        "title": "Recommendation"
+      }
+    }
+  }
+}
