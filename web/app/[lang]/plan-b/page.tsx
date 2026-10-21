@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { AppShell } from "@/components/farm/app-shell";
 import { CropSelect } from "@/components/farm/crop-select";
 import { CropGlyph } from "@/components/farm/crop-glyph";
 import { ReadingsEditor } from "@/components/farm/readings-editor";
@@ -85,11 +84,11 @@ function PlanBBody() {
 export default function PlanB() {
   const { t } = useI18n();
   return (
-    <AppShell active="planb">
+    <>
       <PageHeader title={t("planb.page.title")} subtitle={t("planb.page.sub")} />
       <Suspense fallback={<Loading className="h-96" />}>
         <PlanBBody />
       </Suspense>
-    </AppShell>
+    </>
   );
 }

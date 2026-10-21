@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { mutate } from "swr";
-import { AppShell } from "@/components/farm/app-shell";
 import { PageHeader } from "@/components/home/header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -52,7 +51,7 @@ export default function NewCheck() {
   }
 
   return (
-    <AppShell active="home">
+    <>
       <PageHeader title={t("check.title")} subtitle={t("check.sub")} />
       <Card className="max-w-4xl">
         {meta.error ? <ErrorState onRetry={() => meta.mutate()} /> : !meta.data ? <Loading className="h-64" /> : (
@@ -94,6 +93,6 @@ export default function NewCheck() {
           </form>
         )}
       </Card>
-    </AppShell>
+    </>
   );
 }

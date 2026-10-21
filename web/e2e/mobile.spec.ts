@@ -112,6 +112,6 @@ for (const [name, path, theme, lang] of [
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript((t) => localStorage.setItem("theme", t), theme);
     await open(page, `/${lang}/${path}?check=1`);
-    await expect(page).toHaveScreenshot(`phone-${name}-${theme}-${lang}.png`, { fullPage: true, mask: [page.getByTestId("date")] });
+    await expect(page).toHaveScreenshot(`phone-${name}-${theme}-${lang}.png`, { fullPage: true, mask: [page.locator('[data-testid="date"]:visible')] });
   });
 }

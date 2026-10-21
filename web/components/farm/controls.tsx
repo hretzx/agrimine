@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion, useCalm } from "@/components/motion";
 import { Moon, Sun } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSyncExternalStore } from "react";
@@ -42,16 +43,32 @@ const readTheme = (): Theme => (document.documentElement.dataset.theme === "dark
 export function ThemeToggle() {
   const { t } = useI18n();
   const theme = useSyncExternalStore(subscribeToTheme, readTheme, () => "light" as Theme);
+  const calm = useCalm();
   return (
     <IconButton
       label={theme === "dark" ? t("theme.light") : t("theme.dark")}
-      onClick={() => {
+      onClick={(event) => {
         const next: Theme = theme === "dark" ? "light" : "dark";
-        document.documentElement.dataset.theme = next;
-        localStorage.setItem("theme", next);
+        const apply = () => { document.documentElement.dataset.theme = next; localStorage.setItem("theme", next); };
+        const view = document as Document & { startViewTransition?: (update: () => void) => { ready: Promise<void> } };
+        if (calm || !view.startViewTransition) return apply();
+        // the new theme is revealed as a circle growing from the button (the browser cross-fades two snapshots of the page)
+        const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+        const x = box.left + box.width / 2, y = box.top + box.height / 2;
+        const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+        const transition = view.startViewTransition(apply);
+        transition.ready.then(() => document.documentElement.animate(
+          { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+          { duration: 600, easing: "cubic-bezier(0.22, 1, 0.36, 1)", pseudoElement: "::view-transition-new(root)" },
+        )).catch(() => {});
       }}
     >
-      {theme === "dark" ? <Sun /> : <Moon />}
+      {/* the icon turns into the other one */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span key={theme} className="grid place-items-center [&>svg]:size-[1.05rem]" initial={calm ? false : { rotate: -90, scale: 0.4, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} exit={calm ? undefined : { rotate: 90, scale: 0.4, opacity: 0 }} transition={{ duration: 0.18 }}>
+          {theme === "dark" ? <Sun /> : <Moon />}
+        </motion.span>
+      </AnimatePresence>
     </IconButton>
   );
 }

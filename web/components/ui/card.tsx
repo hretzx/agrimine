@@ -1,16 +1,24 @@
+"use client";
+
 import type { ComponentProps, ReactNode } from "react";
+import { motion, RISE, useCalm, usePageStagger } from "@/components/motion";
 import { cn } from "@/lib/cn";
 
 /** The one card: white (or forest) surface, soft ring, top sheen and a faint green glow along the top edge. */
 export function Card({ className, ...props }: ComponentProps<"section">) {
+  const calm = useCalm();
+  const inPage = usePageStagger();      // inside a page the card waits for its turn in the stagger; on its own it just rises
   return (
-    <section
+    <motion.section
+      variants={RISE}
+      initial={calm ? false : inPage ? undefined : "hidden"}
+      animate={inPage ? undefined : "show"}
       className={cn(
         "relative overflow-hidden rounded-card bg-card px-5 pb-5 pt-[1.1rem] shadow-card",
         "bg-[radial-gradient(140%_55%_at_50%_-22%,var(--glow),transparent_62%)]",
         className,
       )}
-      {...props}
+      {...(props as object)}
     />
   );
 }

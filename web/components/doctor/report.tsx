@@ -2,6 +2,7 @@
 
 import { CloudSun, FlaskConical, Lightbulb, TriangleAlert, Stethoscope } from "lucide-react";
 import Link from "next/link";
+import { EASE_OUT, motion, useCalm } from "@/components/motion";
 import { Badge, STATUS_TONE } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Gauge } from "@/components/ui/gauge";
@@ -46,13 +47,14 @@ export function OverallCard({ report, checkId }: { report: DoctorResponse; check
   const crop = cropName(report.crop, locale);
   const pct = report.score * 100;
   const circ = 2 * Math.PI * 50;
+  const calm = useCalm();
   return (
     <Card data-testid="overall">
       <CardHeader icon={<Stethoscope />} title={t("doctor.overall.title")} subtitle={crop} />
       <div className="relative mx-auto my-3 w-44">
         <svg viewBox="0 0 120 120" className="block w-full" role="img" aria-label={`${t("doctor.overall.title")}: ${Math.round(pct)}%`}>
           <circle cx="60" cy="60" r="50" fill="none" stroke="var(--track)" strokeWidth="10" />
-          <circle cx="60" cy="60" r="50" fill="none" stroke={RING[report.overall]} strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(pct / 100) * circ} ${circ}`} transform="rotate(-90 60 60)" />
+          <motion.circle cx="60" cy="60" r="50" fill="none" stroke={RING[report.overall]} strokeWidth="10" strokeLinecap="round" initial={calm ? false : { strokeDasharray: `0 ${circ}` }} animate={{ strokeDasharray: `${(pct / 100) * circ} ${circ}` }} transition={calm ? { duration: 0 } : { duration: 1, ease: EASE_OUT }} transform="rotate(-90 60 60)" />
         </svg>
         <div className="absolute inset-0 grid place-content-center text-center">
           <b className="text-[2.2rem] font-light leading-none tracking-[-0.04em] tabular-nums" data-testid="score">{Math.round(pct)}%</b>

@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { AppShell } from "@/components/farm/app-shell";
 import { ReadingsEditor } from "@/components/farm/readings-editor";
 import { CompareTable } from "@/components/grow/compare";
 import { RankingCard } from "@/components/grow/ranking";
@@ -51,11 +50,11 @@ function GrowBody() {
 export default function Grow() {
   const { t } = useI18n();
   return (
-    <AppShell active="grow">
+    <>
       <PageHeader title={t("grow.title")} subtitle={t("grow.sub")} />
       <Suspense fallback={<Loading className="h-96" />}>
         <GrowBody />
       </Suspense>
-    </AppShell>
+    </>
   );
 }

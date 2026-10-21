@@ -9,6 +9,8 @@ import "@fontsource/noto-sans-devanagari/devanagari-600.css";
 import "@fontsource/noto-sans-devanagari/devanagari-700.css";
 import "../globals.css";
 import { LOCALES, isLocale } from "@/lib/i18n/config";
+import { AppShell } from "@/components/farm/app-shell";
+import { MotionRoot } from "@/components/motion";
 import { I18nProvider } from "@/lib/i18n/provider";
 
 export const metadata: Metadata = { title: "AgriMine", description: "Smarter crops. Healthier farms." };
@@ -31,7 +33,9 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <I18nProvider locale={lang}>{children}</I18nProvider>
+        <I18nProvider locale={lang}>
+          <MotionRoot><AppShell>{children}</AppShell></MotionRoot>
+        </I18nProvider>
       </body>
     </html>
   );

@@ -2,6 +2,8 @@
 
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
+import { useId } from "react";
+import { motion, SPRING } from "@/components/motion";
 import { cn } from "@/lib/cn";
 
 /** A pill switch with one selected option (language, theme). Built on Base UI's ToggleGroup: arrow keys and aria come with it. */
@@ -18,6 +20,7 @@ export function Segmented<T extends string>({
   label: string;
   className?: string;
 }) {
+  const id = useId();       // one gliding pill per control
   return (
     <ToggleGroup
       aria-label={label}
@@ -30,11 +33,12 @@ export function Segmented<T extends string>({
           key={o.value}
           value={o.value}
           className={cn(
-            "min-w-11 rounded-full px-3.5 py-3 text-[0.8rem] sm:min-w-0 sm:py-1.5 font-medium text-ink-3 outline-none transition",
+            "relative isolate min-w-11 rounded-full px-3.5 py-3 text-[0.8rem] sm:min-w-0 sm:py-1.5 font-medium text-ink-3 outline-none transition-colors",
             "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
-            "data-pressed:bg-seg-on data-pressed:text-seg-on-ink data-pressed:shadow-[0_2px_6px_rgb(0_0_0/.3)]",
+            "data-pressed:text-seg-on-ink",
           )}
         >
+          {o.value === value && <motion.span layoutId={`seg-${id}`} transition={SPRING} aria-hidden="true" className="absolute inset-0 -z-10 rounded-full bg-seg-on shadow-[0_2px_6px_rgb(0_0_0/.3)]" />}
           {o.label}
         </Toggle>
       ))}

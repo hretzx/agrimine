@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { AppShell } from "@/components/farm/app-shell";
 import { CropSelect } from "@/components/farm/crop-select";
 import { ReadingsEditor } from "@/components/farm/readings-editor";
 import { GaugesCard, OverallCard, TipsCard } from "@/components/doctor/report";
@@ -49,11 +48,11 @@ function DoctorBody() {
 export default function Doctor() {
   const { t } = useI18n();
   return (
-    <AppShell active="doctor">
+    <>
       <PageHeader title={t("doctor.page.title")} subtitle={t("doctor.page.sub")} />
       <Suspense fallback={<Loading className="h-96" />}>
         <DoctorBody />
       </Suspense>
-    </AppShell>
+    </>
   );
 }

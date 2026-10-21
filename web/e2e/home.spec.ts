@@ -29,7 +29,7 @@ const settled = async (page: Page) => {
   await page.waitForTimeout(250);
 };
 const shot = (page: Page, name: string) =>
-  expect(page).toHaveScreenshot(name, { fullPage: true, mask: [page.getByTestId("date")] }); // dates are the one thing that changes by the day
+  expect(page).toHaveScreenshot(name, { fullPage: true, mask: [page.locator('[data-testid="date"]:visible')] }); // dates are the one thing that changes by the day
 
 test("with nothing saved, Home says so and offers the way forward", async ({ page }) => {
   await page.setViewportSize({ width: 1536, height: 1024 });

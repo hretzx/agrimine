@@ -1,6 +1,5 @@
 "use client";
 
-import { AppShell } from "@/components/farm/app-shell";
 import { GreetingHeader } from "@/components/home/header";
 import { Hero } from "@/components/home/hero";
 import { DoctorCard, PlanB, TopCrops } from "@/components/home/crops";
@@ -37,12 +36,12 @@ function HomeBody() {
 
 export default function Home() {
   return (
-    <AppShell active="home">
+    <>
       <GreetingHeader />
       <Stats />
       <Suspense fallback={<Loading className="h-96" />}>
         <HomeBody />
       </Suspense>
-    </AppShell>
+    </>
   );
 }

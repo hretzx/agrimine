@@ -2,7 +2,6 @@
 
 import { ExternalLink, FlaskConical, GraduationCap } from "lucide-react";
 import Link from "next/link";
-import { AppShell } from "@/components/farm/app-shell";
 import { PageHeader } from "@/components/home/header";
 import { AccuracyCard } from "@/components/home/insights";
 import { ButtonLink } from "@/components/ui/button";
@@ -62,7 +61,7 @@ function WebLink({ algo, page }: { algo: string; page: string }) {
 export default function Teachers() {
   const { t } = useI18n();
   return (
-    <AppShell active="teachers">
+    <>
       <PageHeader title={t("teachers.title")} subtitle={t("teachers.sub")} />
       <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-[1.6fr_1fr]">
         <Card data-testid="algos">
@@ -89,6 +88,6 @@ export default function Teachers() {
           </Card>
         </div>
       </div>
-    </AppShell>
+    </>
   );
 }

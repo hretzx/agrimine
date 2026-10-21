@@ -3,7 +3,6 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Suspense, useState } from "react";
-import { AppShell } from "@/components/farm/app-shell";
 import { HowCard } from "@/components/grow/why";
 import { PageHeader } from "@/components/home/header";
 import { AprioriControls, AprioriLift, AprioriStats, AprioriTable, AprioriTop } from "@/components/teachers/apriori";
@@ -50,7 +49,7 @@ function AprioriBody() {
 export default function AprioriPage() {
   const { t, locale } = useI18n();
   return (
-    <AppShell active="teachers">
+    <>
       <Link href={`/${locale}/teachers/`} className="-mt-2 mb-1 inline-flex min-h-10 items-center gap-1.5 text-xs font-semibold text-ink-3 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-brand md:mt-0 md:min-h-0">
         <ArrowLeft className="size-3.5" aria-hidden="true" />{t("teachers.back")}
       </Link>
@@ -58,6 +57,6 @@ export default function AprioriPage() {
       <Suspense fallback={<Loading className="h-96" />}>
         <AprioriBody />
       </Suspense>
-    </AppShell>
+    </>
   );
 }

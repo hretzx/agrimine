@@ -3,6 +3,7 @@
 import { ChevronDown, GraduationCap, Home, ShieldCheck, Sprout, Stethoscope } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { motion, SPRING, useCalm } from "@/components/motion";
 import { Badge, type Tone } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import { useCurrentCheck, withCheck } from "@/lib/data";
@@ -33,6 +34,7 @@ export function Sidebar({ active, badges = {}, children }: { active: NavId; badg
     if (row && on) row.scrollLeft = on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
   }, [active, badges.doctor?.text]);          // the Crop Doctor chip arrives later and widens the row: centre again
 
+  const calm = useCalm();
   const [open, setOpen] = useState(false);       // phone only: the current and recent checks fold away under the links
   const { explicitId } = useCurrentCheck();      // moving to another page keeps the check you are looking at
   return (
@@ -66,11 +68,13 @@ export function Sidebar({ active, badges = {}, children }: { active: NavId; badg
                 href={withCheck(`/${locale}/${item.href}`, explicitId)}
                 aria-current={on ? "page" : undefined}
                 className={cn(
-                  "flex h-11 shrink-0 items-center gap-3 md:h-8 rounded-xl px-3 text-[0.85rem] font-medium text-ink-2 outline-none transition [&>svg]:size-[1.05rem]", // one fixed height: a chip must never push the rows below it
+                  "relative isolate flex h-11 shrink-0 items-center gap-3 md:h-8 rounded-xl px-3 text-[0.85rem] font-medium text-ink-2 outline-none transition [&>svg]:size-[1.05rem]", // one fixed height: a chip must never push the rows below it
                   "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
-                  on ? "bg-nav-on font-semibold text-nav-on-ink shadow-[inset_0_0_0_1px_rgb(255_255_255/.4),0_6px_14px_-8px_rgb(14_59_34/.45)]" : "hover:bg-inset",
+                  on ? "font-semibold text-nav-on-ink" : "hover:bg-inset",
                 )}
               >
+                {/* the active pill is ONE element that glides from the old item to the new one (the sidebar stays mounted between pages) */}
+                {on && <motion.span layoutId="nav-pill" transition={SPRING} aria-hidden="true" className="absolute inset-0 -z-10 rounded-xl bg-nav-on shadow-[inset_0_0_0_1px_rgb(255_255_255/.4),0_6px_14px_-8px_rgb(14_59_34/.45)]" />}
                 {item.icon}
                 <span>{t(item.label)}</span>
                 {badge && <Badge tone={badge.tone} className={cn("ml-auto", on && "bg-black/10 text-nav-on-ink")}>{badge.text}</Badge>}  {/* on the pale active pill a tinted chip would vanish */}
@@ -82,7 +86,9 @@ export function Sidebar({ active, badges = {}, children }: { active: NavId; badg
                 className="mt-1 flex h-11 w-full md:h-9 items-center justify-between rounded-xl px-3 text-[0.8rem] font-semibold text-ink-2 outline-none hover:bg-inset focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand md:hidden">
           {t("check.current")} / {t("check.recent")}<ChevronDown className={cn("size-4 transition", open && "rotate-180")} aria-hidden="true" />
         </button>
-        <div id="side-checks" className={cn("md:block", open ? "block" : "hidden")}>{children}</div>
+        {/* phone: opens and closes smoothly; closed it is also invisible to the keyboard and screen readers (visibility). From md up it is always shown. */}
+        <motion.div id="side-checks" initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0, ...(open ? { visibility: "visible" } : { transitionEnd: { visibility: "hidden" } }) }}
+                    transition={calm ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="overflow-hidden md:!visible md:!h-auto md:!overflow-visible md:!opacity-100">{children}</motion.div>
       </div>
 
       {/* The landscape: a transparent PNG (day and night) anchored to the bottom of its own space, with the profile bar on it. */}

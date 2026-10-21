@@ -2,7 +2,6 @@
 
 import { ClipboardList } from "lucide-react";
 import { Suspense } from "react";
-import { AppShell } from "@/components/farm/app-shell";
 import { CropGlyph } from "@/components/farm/crop-glyph";
 import { PageHeader } from "@/components/home/header";
 import { pct } from "@/components/home/format";
@@ -45,10 +44,10 @@ function List() {
 export default function Checks() {
   const { t, locale } = useI18n();
   return (
-    <AppShell active="home">
+    <>
       <PageHeader title={t("checks.title")} subtitle={t("checks.sub")} />
       <Suspense fallback={<Loading className="h-64" />}><List /></Suspense>
       <div className="mt-4"><ButtonLink href={`/${locale}/check/`} variant="outline">{t("action.newCheck")}</ButtonLink></div>
-    </AppShell>
+    </>
   );
 }

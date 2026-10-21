@@ -91,6 +91,15 @@ Browser tests (Playwright) start their own servers with throw-away databases, on
 (tests in a file share state on purpose) and, on a small machine, **one project at a time** (`npx playwright test --project=pages`); running all projects
 at once can exhaust the machine's threads.
 
+## Motion
+The web app uses the [`motion`](https://motion.dev) library, all through one small layer, `web/components/motion/index.tsx`:
+* **Pages:** the sidebar lives in the layout, so it stays mounted while you move between pages; its active pill glides to the new item and the page's cards rise one after another.
+* **Touch:** buttons, links and icon buttons lift a hair on hover and dip when pressed; the selected pill of every switch (EN / मराठी, linkage, pattern size) glides; the phone's current-check panel opens and closes smoothly; menus and tooltips ease in.
+* **Data:** progress bars, gauges and the soil-health ring grow in and glide when the value changes.
+* **Theme:** switching light and dark reveals the new theme as a circle growing from the button (the browser's View Transitions), and the icon turns into the other one.
+* **Less motion:** anyone whose system says "reduce motion" gets none of it; every piece then draws its final state at once (`useCalm()`).
+Tests: every browser test group runs with reduced motion (so screenshots are deterministic); `e2e/motion.spec.ts` is the one group that turns motion on and measures what the browser draws frame by frame (fade, stagger, bars, gliding pills, press, theme reveal, phone panel, accessibility once settled) and checks that reduced motion really means no movement.
+
 ## The Marathi text
 The Marathi wording and the Marathi crop names are drafts. Please have a Marathi speaker (ideally farmers) check them before they are shown to farmers.
 Translations for the web app are in `web/lib/i18n/dictionaries/` (`en.json`, `mr.json`; a test checks that both have the same keys and that none is unused).
@@ -171,7 +180,7 @@ the `CREATE TABLE` types (`INTEGER PRIMARY KEY` -> `INT PRIMARY KEY`, `REAL` -> 
     python tests/smoke_test.py      opens every lab page, its controls and the language toggle with Streamlit's test runner
     make test-web                   type check, lint, unit tests of the web app
     make test-e2e                   browser tests against the real product: every page, English and Marathi, light and dark, phone sizes,
-                                    accessibility (axe) and keyboard checks, screenshot comparisons, and the real lab
+                                    accessibility (axe) and keyboard checks, screenshot comparisons, the real lab, and the animations
 
 `scipy` is an **optional test dependency** (`pip install -r requirements-test.txt`); the app does not need it.
 

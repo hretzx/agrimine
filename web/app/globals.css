@@ -125,3 +125,14 @@ body { min-height: 100vh; background: var(--bg); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+
+/* Theme switch: the new theme is revealed as a growing circle (components/farm/controls.tsx animates the clip-path). The browser's default
+   cross-fade is switched off, and the reveal is skipped entirely for visitors who asked for reduced motion. */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}

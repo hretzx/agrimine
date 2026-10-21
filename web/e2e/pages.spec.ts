@@ -27,7 +27,7 @@ const settled = async (page: Page) => {
   await expect(page.getByRole("status").filter({ hasText: "Loading" })).toHaveCount(0, { timeout: 15_000 });
   await page.waitForTimeout(400); // the 300 ms debounce and the opacity transition
 };
-const shot = (page: Page, name: string) => expect(page).toHaveScreenshot(name, { fullPage: true, mask: [page.getByTestId("date")] });
+const shot = (page: Page, name: string) => expect(page).toHaveScreenshot(name, { fullPage: true, mask: [page.locator('[data-testid="date"]:visible')] });
 const reading = (page: Page, key: string) => page.locator(`#reading-${key}`);
 
 test("with nothing saved, every page starts from the dataset's typical values and still answers", async ({ page, request }) => {
@@ -499,7 +499,7 @@ for (const [theme, lang] of [["light", "en"], ["dark", "mr"]] as const) {
     await open(page, `/${lang}/teachers/apriori/?check=1`, theme);
     await settled(page);
     await expect(page.getByTestId("apr-time")).toBeVisible();
-    await expect(page).toHaveScreenshot(`apr-${theme}-${lang}-1536x1024.png`, { fullPage: true, mask: [page.getByTestId("date"), page.getByTestId("apr-time")] });   // the mining time is measured, so it differs every run
+    await expect(page).toHaveScreenshot(`apr-${theme}-${lang}-1536x1024.png`, { fullPage: true, mask: [page.locator('[data-testid="date"]:visible'), page.getByTestId("apr-time")] });   // the mining time is measured, so it differs every run
   });
 }
 

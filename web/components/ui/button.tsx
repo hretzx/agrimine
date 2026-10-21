@@ -3,6 +3,7 @@
 import { Button as BaseButton } from "@base-ui/react/button";
 import Link from "next/link";
 import type { ComponentProps } from "react";
+import { motion, usePress } from "@/components/motion";
 import { cn } from "@/lib/cn";
 
 type Variant = "primary" | "dark" | "ghost" | "outline";
@@ -17,17 +18,21 @@ const VARIANTS: Record<Variant, string> = {
 
 const BASE =
   "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-[0.84rem] font-semibold " +
-  "outline-none transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand " +
+  "outline-none transition-[color,background-color,box-shadow,filter,opacity] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand " +
   "data-disabled:cursor-not-allowed data-disabled:opacity-50";
 
 export type ButtonProps = ComponentProps<typeof BaseButton> & { variant?: Variant };
 
 /** A pill button on Base UI's Button (keyboard, focus and disabled behaviour come from Base UI). */
 export function Button({ variant = "primary", className, ...props }: ButtonProps) {
-  return <BaseButton className={cn(BASE, VARIANTS[variant], className)} {...props} />;
+  const press = usePress("button");
+  return <BaseButton render={<motion.button {...press} />} className={cn(BASE, VARIANTS[variant], className)} {...props} />;
 }
 
 /** A link that looks like a Button: for moving to another page (a real <a>, so it works with middle-click and without JavaScript). */
-export function ButtonLink({ variant = "primary", className, ...props }: ComponentProps<typeof Link> & { variant?: Variant }) {
-  return <Link className={cn(BASE, VARIANTS[variant], className)} {...props} />;
+const MotionLink = motion.create(Link);
+
+export function ButtonLink({ variant = "primary", className, href, ...props }: ComponentProps<typeof Link> & { variant?: Variant }) {
+  const press = usePress("button");
+  return <MotionLink {...press} href={href} className={cn(BASE, VARIANTS[variant], className)} {...(props as object)} />;
 }
